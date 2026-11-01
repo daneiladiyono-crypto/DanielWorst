@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DanielWorst AI</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #09090f;
+      color: white;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px;
+      border-bottom: 1px solid #252535;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #7557ff, #b44cff);
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      font-weight: bold;
+      font-size: 19px;
+    }
+
+    header h2 {
+      font-size: 18px;
+    }
+
+    header p {
+      color: #9292a5;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    #chat {
+      flex: 1;
+      width: 100%;
+      max-width: 850px;
+      margin: auto;
+      padding: 22px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .welcome {
+      text-align: center;
+      margin: auto 0;
+      padding: 35px 10px;
+    }
+
+    .welcome h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #9c85ff, #df8aff);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .welcome p {
+      color: #9292a5;
+      font-size: 14px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 13px 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #6849db;
+      border-bottom-right-radius: 5px;
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background: #191925;
+      border: 1px solid #29293b;
+      border-bottom-left-radius: 5px;
+    }
+
+    .input-area {
+      width: 100%;
+      max-width: 850px;
+      margin: auto;
+      padding: 12px 16px 22px;
+    }
+
+    .input-box {
+      display: flex;
+      align-items: center;
+      background: #191925;
+      border: 1px solid #343447;
+      border-radius: 17px;
+      padding: 7px;
+      gap: 8px;
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      color: white;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 12px 8px;
+      font-size: 14px;
+      font-family: inherit;
+      max-height: 120px;
+    }
+
+    textarea::placeholder {
+      color: #77778b;
+    }
+
+    button {
+      background: #7957f5;
+      border: none;
+      color: white;
+      width: 43px;
+      height: 43px;
+      border-radius: 12px;
+      font-size: 19px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      color: #656579;
+      font-size: 11px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">DW</div>
+    <div>
+      <h2>DanielWorst AI</h2>
+      <p>AI Assistant • Online</p>
+    </div>
+  </header>
+
+  <main id="chat">
+    <div class="welcome" id="welcome">
+      <h1>Halo, ada yang bisa kubantu?</h1>
+      <p>Tanyakan apa saja kepada DanielWorst AI.</p>
+    </div>
+  </main>
+
+  <div class="input-area">
+    <div class="input-box">
+      <textarea
+        id="message"
+        placeholder="Tulis pesan..."
+        rows="1"
+      ></textarea>
+
+      <button id="send" onclick="sendMessage()">➤</button>
+    </div>
+
+    <div class="footer">
+      DanielWorst AI • Powered by OpenAI
+    </div>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("message");
+    const sendButton = document.getElementById("send");
+
+    let messages = [];
+    let loading = false;
+
+    function addMessage(role, content) {
+      const welcome = document.getElementById("welcome");
+
+      if (welcome) welcome.remove();
+
+      const div = document.createElement("div");
+      div.className = "message " + role;
+      div.textContent = content;
+
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+
+      if (!text || loading) return;
+
+      loading = true;
+      sendButton.disabled = true;
+
+      input.value = "";
+
+      messages.push({
+        role: "user",
+        content: text
+      });
+
+      addMessage("user", text);
+
+      const loadingMessage = document.createElement("div");
+      loadingMessage.className = "message assistant";
+      loadingMessage.textContent = "Sedang berpikir...";
+      chat.appendChild(loadingMessage);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            messages: messages
+          })
+        });
+
+        const data = await response.json();
+
+        loadingMessage.remove();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Terjadi kesalahan.");
+        }
+
+        const reply = data.reply || "Tidak ada jawaban.";
+
+        messages.push({
+          role: "assistant",
+          content: reply
+        });
+
+        addMessage("assistant", reply);
+
+      } catch (error) {
+        loadingMessage.remove();
+
+        addMessage(
+          "assistant",
+          "Maaf, terjadi kesalahan: " + error.message
+        );
+
+        messages.pop();
+      }
+
+      loading = false;
+      sendButton.disabled = false;
+      input.focus();
+    }
+
+    input.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+
+</body>
+</html>
